@@ -3,9 +3,10 @@ package de.vattenfall.is.context;
 import de.vattenfall.is.BaseTestFixture;
 import de.vattenfall.is.context.action.NoScopeActionBean;
 import de.vattenfall.is.context.action.Scope1ActionBean;
+import de.vattenfall.is.context.action.Scope1And2ActionBean;
+import de.vattenfall.is.context.action.Scope3ActionBean;
 import net.sourceforge.stripes.mock.MockHttpSession;
 import net.sourceforge.stripes.mock.MockRoundtrip;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -17,10 +18,6 @@ public class ContextScopeInterceptorTest extends BaseTestFixture {
     @Before
     public void setUp() {
         session = new MockHttpSession(ctx);
-    }
-
-    @After
-    public void tearDown() {
     }
 
     @Test
@@ -46,6 +43,56 @@ public class ContextScopeInterceptorTest extends BaseTestFixture {
     }
 
     @Test
+    public void shouldInjectKeyValueInOtherBeanWithWiderScope() throws Exception {
+        // GIVEN
+        MockRoundtrip trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        trip.addParameter("publicString", "X");
+        trip.addParameter("protectedInteger1", "5");
+        trip.addParameter("packagePrivateLong1", "10");
+        trip.addParameter("publicNotAnnotated1", "Y");
+        trip.addParameter("privateTestClass1.field1", "Z");
+        trip.execute();
+        Scope1ActionBean bean = trip.getActionBean(Scope1ActionBean.class);
+        assertEquals("X1", bean.getPublicString());
+        assertEquals("Z", bean.getPrivateTestClass1().field1);
+        
+        // WHEN
+        trip = new MockRoundtrip(ctx, Scope1And2ActionBean.class, session);
+        trip.execute();
+
+        // THEN
+        Scope1And2ActionBean bean2 = trip.getActionBean(Scope1And2ActionBean.class);
+        assertEquals(24, bean2.getPackagePrivateLong12());   // insertion of null would throw exception
+        assertEquals("M12", bean2.getPublicString());   // from bean itself
+        assertEquals("Z", bean2.getPrivateTestClass12().field1);  // from scope
+    }
+
+    @Test
+    public void shouldInjectKeyValueInOtherBeanWithSmallerScope() throws Exception {
+        // GIVEN
+        MockRoundtrip trip = new MockRoundtrip(ctx, Scope1And2ActionBean.class, session);
+        trip.addParameter("publicString", "X");
+        trip.addParameter("protectedInteger1", "5");
+        trip.addParameter("packagePrivateLong1", "10");
+        trip.addParameter("publicNotAnnotated1", "Y");
+        trip.addParameter("privateTestClass12.field1", "V");
+        trip.execute();
+        Scope1And2ActionBean bean = trip.getActionBean(Scope1And2ActionBean.class);
+        assertEquals("X12", bean.getPublicString());
+        assertEquals("V", bean.getPrivateTestClass12().field1);
+
+        // WHEN
+        trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        trip.execute();
+
+        // THEN
+        Scope1ActionBean bean2 = trip.getActionBean(Scope1ActionBean.class);
+        assertEquals(1, bean2.getPackagePrivateLong1());   // insertion of null would throw exception
+        assertEquals("X1", bean2.getPublicString());   // from bean itself
+        assertEquals("V", bean2.getPrivateTestClass1().field1);  // from scope
+    }
+
+    @Test
     public void shouldntInjectValuesToContextInBeanWithoutContextScope() throws Exception {
         // GIVEN
         MockRoundtrip trip = new MockRoundtrip(ctx, NoScopeActionBean.class, session);
@@ -66,5 +113,58 @@ public class ContextScopeInterceptorTest extends BaseTestFixture {
         // THEN
         bean = trip.getActionBean(NoScopeActionBean.class);
         assertNull(bean.publicString);
+    }
+
+    @Test
+    public void shouldntInjectKeyValueInOtherBeanWithOtherScope() throws Exception {
+        // GIVEN
+        MockRoundtrip trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        trip.addParameter("publicString", "X");
+        trip.addParameter("protectedInteger1", "5");
+        trip.addParameter("packagePrivateLong1", "10");
+        trip.addParameter("publicNotAnnotated1", "Y");
+        trip.addParameter("privateTestClass1.field1", "Z");
+        trip.execute();
+        Scope1ActionBean bean = trip.getActionBean(Scope1ActionBean.class);
+        assertEquals("X1", bean.getPublicString());
+        assertEquals("Z", bean.getPrivateTestClass1().field1);
+
+        // WHEN
+        trip = new MockRoundtrip(ctx, Scope3ActionBean.class, session);
+        trip.execute();
+
+        // THEN
+        Scope3ActionBean bean2 = trip.getActionBean(Scope3ActionBean.class);
+        assertEquals(6, bean2.getPackagePrivateLong3());   // insertion of null would throw exception
+        assertEquals("33", bean2.getPublicString());   // from bean itself
+        assertNull(bean2.getPrivateTestClass3());  // from bean itself
+    }
+
+    @Test
+    public void shouldForgetScopedValuesAfterScopeChange() throws Exception {
+        // GIVEN
+        MockRoundtrip trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        trip.addParameter("publicString", "X");
+        trip.addParameter("protectedInteger1", "5");
+        trip.addParameter("packagePrivateLong1", "10");
+        trip.addParameter("publicNotAnnotated1", "Y");
+        trip.addParameter("privateTestClass1.field1", "Z");
+        trip.execute();
+        Scope1ActionBean bean = trip.getActionBean(Scope1ActionBean.class);
+
+        // change scope
+        trip = new MockRoundtrip(ctx, Scope3ActionBean.class, session);
+        trip.execute();
+
+        // WHEN
+        // switch back to previously scoped bean
+        trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        trip.execute();
+
+        // THEN
+        bean = trip.getActionBean(Scope1ActionBean.class);
+        assertEquals(1, bean.getPackagePrivateLong1());   // insertion of null would throw exception
+        assertEquals("X1", bean.getPublicString());   // from bean itself
+        assertNull(bean.getPrivateTestClass1());  // from bean itself
     }
 }

@@ -11,14 +11,14 @@ import net.sourceforge.stripes.action.Resolution;
 public class Scope3ActionBean extends BaseTestActionBean {
 
     @Context
-    public String publicString;
+    public String publicString = "3";
     @Context
-    protected Integer protectedInteger3;
+    protected Integer protectedInteger3 = 3;
     @Context
-    long packagePrivateLong3;
+    long packagePrivateLong3 = 3;
     @Context(key = "testClassKey")
     private MyTestClass privateTestClass3;
-    public String publicNotAnnotated3;
+    public String publicNotAnnotated3 = "3";
 
     @DefaultHandler
     public Resolution defaultHandler() {

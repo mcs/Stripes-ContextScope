@@ -80,28 +80,31 @@ public class ContextScopeSessionStrategy {
     public void injectContextValues(ActionBean bean) {
         Collection<Field> fields = AnnotationUtil.getFields(Context.class, bean.getClass());
         for (Field field : fields) {
-            String key = getKey(field);
+            String key = getKey(bean, field);
             Object value = getValue(key);
-            try {
-                field.set(bean, value);
-            } catch (IllegalAccessException ex) {
-                String msg = String.format("Unexpected error while injecting value '%s' into field '%s'", value, field);
-                throw new RuntimeException(msg, ex);
+            if (value != null) {
+                try {
+                    field.set(bean, value);
+                } catch (IllegalAccessException ex) {
+                    String msg = String.format("Unexpected error while injecting value '%s' into field '%s'", value, field);
+                    throw new RuntimeException(msg, ex);
+                }
+
             }
         }
     }
 
-    public String getKey(Field field) {
+    public String getKey(ActionBean bean, Field field) {
         Context context = field.getAnnotation(Context.class);
         String key = context.key();
-        return key.isEmpty() ? field.getType().getName() + "-" + field.getName() : key;
+        return key.isEmpty() ? bean.getClass().getName() + "." + field.getName() : field.getClass().getName() + "-" + key;
     }
 
     public void storeValuesInContext(ActionBean bean) {
         Collection<Field> fields = AnnotationUtil.getFields(Context.class, bean.getClass());
         for (Field field : fields) {
             try {
-                String key = getKey(field);
+                String key = getKey(bean, field);
                 Object value = field.get(bean);
                 setValue(key, value);
             } catch (IllegalAccessException ex) {

@@ -53,7 +53,7 @@ public class ContextScopeSessionStrategyTest extends BaseTestFixture {
     }
 
     @Test
-    public void shouldReadNullAfterCleaning() {
+    public void shouldReadNullAfterChangingScope() {
         // GIVEN
         String key = "testKey";
         Object value = "testValue";

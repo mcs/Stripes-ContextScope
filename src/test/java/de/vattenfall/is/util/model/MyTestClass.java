@@ -28,6 +28,10 @@ public class MyTestClass {
         return field1;
     }
 
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
     @TestAnno2
     protected String getField2() {
         return field2;
