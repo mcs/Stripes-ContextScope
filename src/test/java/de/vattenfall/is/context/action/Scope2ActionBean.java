@@ -1,22 +1,24 @@
 package de.vattenfall.is.context.action;
 
 import de.vattenfall.is.context.Context;
+import de.vattenfall.is.context.ContextScope;
 import de.vattenfall.is.util.model.MyTestClass;
 import net.sourceforge.stripes.action.DefaultHandler;
 import net.sourceforge.stripes.action.ForwardResolution;
 import net.sourceforge.stripes.action.Resolution;
 
+@ContextScope(scopes = "scope2")
 public class Scope2ActionBean extends BaseTestActionBean {
 
     @Context
-    public String publicString;
+    public String publicString = "2";
     @Context
-    protected Integer protectedInteger2;
+    protected Integer protectedInteger2 = 2;
     @Context
     long packagePrivateLong2;
     @Context(key = "testClassKey")
     private MyTestClass privateTestClass2;
-    public String publicNotAnnotated2;
+    public String publicNotAnnotated2 = "22";
 
     @DefaultHandler
     public Resolution defaultHandler() {

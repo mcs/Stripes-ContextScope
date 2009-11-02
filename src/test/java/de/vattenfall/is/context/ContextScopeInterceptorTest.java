@@ -4,6 +4,7 @@ import de.vattenfall.is.BaseTestFixture;
 import de.vattenfall.is.context.action.NoScopeActionBean;
 import de.vattenfall.is.context.action.Scope1ActionBean;
 import de.vattenfall.is.context.action.Scope1And2ActionBean;
+import de.vattenfall.is.context.action.Scope2ActionBean;
 import de.vattenfall.is.context.action.Scope3ActionBean;
 import net.sourceforge.stripes.mock.MockHttpSession;
 import net.sourceforge.stripes.mock.MockRoundtrip;
@@ -143,6 +144,7 @@ public class ContextScopeInterceptorTest extends BaseTestFixture {
     @Test
     public void shouldForgetScopedValuesAfterScopeChange() throws Exception {
         // GIVEN
+        // start with scope1 bean
         MockRoundtrip trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
         trip.addParameter("publicString", "X");
         trip.addParameter("protectedInteger1", "5");
@@ -150,21 +152,20 @@ public class ContextScopeInterceptorTest extends BaseTestFixture {
         trip.addParameter("publicNotAnnotated1", "Y");
         trip.addParameter("privateTestClass1.field1", "Z");
         trip.execute();
-        Scope1ActionBean bean = trip.getActionBean(Scope1ActionBean.class);
 
-        // change scope
-        trip = new MockRoundtrip(ctx, Scope3ActionBean.class, session);
+        // change scope to scope1 and scope2 bean
+        trip = new MockRoundtrip(ctx, Scope1And2ActionBean.class, session);
         trip.execute();
 
         // WHEN
-        // switch back to previously scoped bean
-        trip = new MockRoundtrip(ctx, Scope1ActionBean.class, session);
+        // switch to scope2 scoped bean
+        trip = new MockRoundtrip(ctx, Scope2ActionBean.class, session);
         trip.execute();
 
         // THEN
-        bean = trip.getActionBean(Scope1ActionBean.class);
-        assertEquals(1, bean.getPackagePrivateLong1());   // insertion of null would throw exception
-        assertEquals("X1", bean.getPublicString());   // from bean itself
-        assertNull(bean.getPrivateTestClass1());  // from bean itself
+        Scope2ActionBean bean2 = trip.getActionBean(Scope2ActionBean.class);
+        assertEquals(2, bean2.getPackagePrivateLong2());   // insertion of null would throw exception
+        assertEquals("22", bean2.getPublicString());   // from bean itself
+        assertNull(bean2.getPrivateTestClass2());  // from bean itself
     }
 }
